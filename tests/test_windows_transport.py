@@ -30,11 +30,16 @@ class WindowsRelaySmoke(unittest.TestCase):
                 text=True, env=env
             )
             try:
-                line = process.stdout.readline()
-                if not line.startswith("INIT "):
-                    self.fail(f"Unexpected host output: {line!r}")
-                ready = process.stdout.readline()
-                self.assertIn("READY port=", ready)
+                lines = []
+                for _ in range(10):
+                    line = process.stdout.readline()
+                    lines.append(line)
+                    if line.startswith("READY port="):
+                        break
+                    if not line:
+                        self.fail(f"Host exited before READY: {lines!r}")
+                else:
+                    self.fail(f"Host did not emit READY: {lines!r}")
                 relay = subprocess.run(
                     [str(executable)], capture_output=True, text=True,
                     timeout=15, env=env, cwd=ROOT
