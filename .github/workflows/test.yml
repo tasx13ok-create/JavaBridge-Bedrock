@@ -27,3 +27,27 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Inspect authored demo JAR
         run: python tools/inspect.py out/mods
+
+  windows-transport:
+    name: Windows native TCP relay smoke
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build Java demo
+        run: python tools/build.py
+      - name: Compile Windows C++ transport harness
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /I native/levilamina-client/src native/levilamina-client/src/mod/BridgeTransport.cpp native/test/transport_harness.cpp /Fe:out/transport_harness.exe /link ws2_32.lib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Windows events reach Java
+        run: python -m unittest discover -s tests -p test_windows_transport.py -v
