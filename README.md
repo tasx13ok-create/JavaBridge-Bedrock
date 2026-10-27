@@ -2,7 +2,7 @@
 
 **Goal:** Research how original Java Edition mod `.jar` bytecode might execute next to Minecraft Bedrock on Windows, eventually enabling select Java mods to work without converting them to add-ons.
 
-**Present status:** JVM host and real native C++ event relay work in standalone tests. The source-only LeviLamina Windows client plugin has **not** been compiled or run in Minecraft Bedrock. This is **not** a functioning general-purpose CurseForge Java-mod loader yet.
+**Present status:** JVM host and C++ event transport are tested on Linux **and Windows**. The Windows native relay-to-JVM integration test [passed in GitHub Actions](https://github.com/tasx13ok-create/JavaBridge-Bedrock/actions/runs/40600778888). The source-only LeviLamina Windows client plugin has **not** yet built or run in Minecraft Bedrock; the first full build failed while compiling the upstream LeviLamina package, before reaching JavaBridge code. This is **not** a functioning general-purpose CurseForge Java-mod loader yet.
 
 ## Verified capabilities
 
