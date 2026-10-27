@@ -1,0 +1,7 @@
+{
+  "name": "CFBedrockJavaBridge",
+  "entry": "CFBedrockJavaBridge.dll",
+  "version": "0.2.0",
+  "type": "native",
+  "platform": "client"
+}

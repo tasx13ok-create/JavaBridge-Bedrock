@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "hello_fabric_bridge",
+  "version": "0.2.0",
+  "name": "Hello Fabric Bridge Demo",
+  "environment": "*",
+  "entrypoints": { "main": ["demo.HelloFabric"] },
+  "depends": { "java": ">=21" }
+}
