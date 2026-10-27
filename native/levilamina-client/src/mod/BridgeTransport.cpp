@@ -53,7 +53,10 @@ Config readConfig() {
         if (!end || *end != '\0' || raw <= 0 || raw > 65535) return {};
         cfg.port = static_cast<int>(raw);
     }
-    if (std::getline(in, line) && line.starts_with("TOKEN ")) cfg.token = line.substr(6);
+    if (std::getline(in, line) && line.starts_with("TOKEN ")) {
+        cfg.token = line.substr(6);
+        if (!cfg.token.empty() && cfg.token.back() == '\\r') cfg.token.pop_back();
+    }
     if (cfg.port <= 0 || cfg.port > 65535 || cfg.token.size() < 32 || cfg.token.size() > 256) return {};
     return cfg;
 }
