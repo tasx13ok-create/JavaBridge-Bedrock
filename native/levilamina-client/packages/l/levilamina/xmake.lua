@@ -54,7 +54,8 @@ package("levilamina")
 #include "mc/server/commands/CommandRegistry.h"
 #include "mc/server/commands/DeferredCommandBase.h"
 ]]
-        io.writefile(source, original:gsub(anchor, anchor .. "\n" .. extra, 1))
+        local patched = original:gsub(anchor, anchor .. "\n" .. extra, 1)
+        io.writefile(source, patched)
         cprint("${bright yellow}Applying JavaBridge temporary upstream compile workaround (26.51.9)${clear}")
         import("package.tools.xmake").install(package, {"--target_type=" .. package:config("target_type")})
     end)
