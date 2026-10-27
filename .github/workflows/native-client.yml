@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: native-client-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows-client:
     runs-on: windows-2022
@@ -34,10 +38,22 @@ jobs:
         run: xmake repo -u
       - name: Configure LeviLamina client build
         working-directory: native/levilamina-client
-        run: xmake f -p windows -a x64 -m release --target_type=client -y
+        run: xmake f -vD -p windows -a x64 -m release --target_type=client -y
       - name: Compile native plugin
         working-directory: native/levilamina-client
         run: xmake -w -y
+      - name: Print upstream XMake package logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $cache = Join-Path $env:LOCALAPPDATA ".xmake"
+          if (Test-Path $cache) {
+            $logs = Get-ChildItem $cache -Recurse -Filter "install.txt" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 4
+            foreach ($log in $logs) {
+              Write-Host "=== Upstream install log: $($log.FullName) ==="
+              Get-Content $log.FullName -Tail 140
+            }
+          }
       - name: Upload compiled plugin if build succeeds
         uses: actions/upload-artifact@v4
         with:
