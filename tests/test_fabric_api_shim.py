@@ -47,6 +47,7 @@ class FabricApiShimTests(unittest.TestCase):
             self.assertEqual(process.returncode, 0, err)
             self.assertIn("FABRIC_API_LISTENER_REGISTERED", out)
             self.assertIn("FABRIC_API_TICK 3", out)
+            self.assertIn("FABRIC_LOADER_SELF=true", out)
         finally:
             if process.poll() is None:
                 process.kill()

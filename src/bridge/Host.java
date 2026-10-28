@@ -7,6 +7,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Direct-JAR JVM experiment. Mod bytecode is not sandboxed; use only trusted JARs. */
@@ -109,6 +110,7 @@ public final class Host {
 
     private static void loadMods(Path modsDir) throws Exception {
         if (!Files.isDirectory(modsDir)) throw new IllegalArgumentException("Missing mods folder: " + modsDir);
+        FabricLoader.bridgeConfigure(modsDir);
         List<Path> jars;
         try (var paths = Files.list(modsDir)) {
             jars = paths.filter(path -> path.getFileName().toString().endsWith(".jar")).sorted().limit(101).toList();
@@ -122,6 +124,7 @@ public final class Host {
             try {
                 Mod mod = metadata(jar);
                 if (mod == null) { SKIPPED.add(jar.getFileName() + " non-fabric-jar"); continue; }
+                FabricLoader.bridgeRegister(mod.id);
                 for (String entry : mod.mainEntries) {
                     Class<?> cls = Class.forName(entry, true, loader);
                     Object instance = cls.getDeclaredConstructor().newInstance();
@@ -131,6 +134,8 @@ public final class Host {
                 LOADED.add(mod.id);
                 System.out.println("INIT " + mod.id);
             } catch (Throwable err) {
+                // The failed mod is not considered loaded by the facade.
+                // Its Java side effects may still exist; this is NOT an isolation layer.
                 SKIPPED.add(jar.getFileName() + " " + err.getClass().getSimpleName() + ": " + err.getMessage());
                 System.err.println("SKIP " + SKIPPED.get(SKIPPED.size() - 1));
             }

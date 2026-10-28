@@ -1,6 +1,7 @@
 package demo;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /**
@@ -13,5 +14,7 @@ public final class PlainTickMod implements ModInitializer {
             System.out.println("FABRIC_API_TICK " + server.getTickCount())
         );
         System.out.println("FABRIC_API_LISTENER_REGISTERED");
+        System.out.println("FABRIC_LOADER_SELF=" + FabricLoader.getInstance().isModLoaded("fabric_api_tick_direct"));
+        System.out.println("FABRIC_LOADER_WORKSPACE=" + FabricLoader.getInstance().getGameDir().getFileName());
     }
 }
