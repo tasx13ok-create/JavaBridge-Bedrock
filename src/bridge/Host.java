@@ -7,6 +7,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Direct-JAR JVM experiment. Mod bytecode is not sandboxed; use only trusted JARs. */
 public final class Host {
@@ -49,7 +50,7 @@ public final class Host {
                     else if (command.equals("LEAVE")) dispatch(out, "LEAVE", BedrockEvents.dispatchLeave());
                     else if (command.equals("TICK")) {
                         if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
-                        dispatch(out, "TICK", BedrockEvents.dispatchTick());
+                        dispatch(out, "TICK", BedrockEvents.dispatchTick() + ServerTickEvents.fire());
                     } else if (command.equals("STOP")) { out.println("BYE"); break; }
                     else out.println("ERROR unsupported-command");
                 }
@@ -87,7 +88,7 @@ public final class Host {
             Object deps = map.get("depends");
             if (deps instanceof Map<?, ?> d) {
                 for (Object k : d.keySet()) {
-                    if (!Set.of("java", "minecraft", "fabricloader").contains(String.valueOf(k))) {
+                    if (!Set.of("java", "minecraft", "fabricloader", "fabric-lifecycle-events-v1").contains(String.valueOf(k))) {
                         throw new UnsupportedOperationException("Unimplemented dependency: " + k);
                     }
                 }

@@ -10,6 +10,7 @@
 - Compile an original demonstration Fabric-style JAR, then execute its Java bytecode through a small local JVM host.
 - Relay simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
 - Handle the first bounded Java-to-native response, `BedrockActions.log`, and queue it to be emitted by a Bedrock event callback; tested on Windows and Linux C++ harnesses. No world mutations yet.
+- Minimal **Fabric API tick event ABI** shims for `ServerTickEvents.START_SERVER_TICK` and `END_SERVER_TICK` with a deliberately tiny `MinecraftServer` facade. An independently built JAR using Fabric API import names runs unchanged in the JVM sidecar. This only demonstrates that specific binary interface, not Fabric API or Minecraft Java Edition compatibility.
 - Unit and integration tests for the host, inspector, token rejection, and C++ worker.
 - Source for a LeviLamina Windows Bedrock client plugin wired to client join/exit and server-level tick events (not yet validated in Bedrock).
 
@@ -49,7 +50,7 @@ The DLL build and in-game behavior are **not** currently verified. Actual game e
 
 ## What this does NOT do
 
-- It does not supply actual Java Edition `net.minecraft.*` classes, Fabric Loader/Fabric API, registries, Mixins, shaders, rendering or world mutation.
+- It does not supply the full Java Edition `net.minecraft.*` classes, Fabric Loader/Fabric API, registries, Mixins, shaders, rendering or world mutation. The single tick-event shim's `MinecraftServer` object is a limited facade, not a real Java server.
 - It does not yet make third-party CurseForge Java mods work in Bedrock; the JAR executed in tests is our intentionally simple demonstration mod.
 - The native C++ relay only accepts a safe Java **LOG** action back into a native event-thread queue; it cannot yet change blocks, entities, inventory, lighting, or other game state.
 - It does not copy the CurseForge client or download its mods. API integration would require approved keys/permissions.

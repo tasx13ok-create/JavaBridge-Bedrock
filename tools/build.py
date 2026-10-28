@@ -23,7 +23,19 @@ def build():
          "-d", OUT / "demo", ROOT / "examples/hello-fabric/src/demo/HelloFabric.java"])
     run(["jar", "--create", "--file", OUT / "mods/hello-fabric.jar",
          "-C", OUT / "demo", ".", "-C", ROOT / "examples/hello-fabric", "fabric.mod.json"])
-    print("Built:", OUT / "mods/hello-fabric.jar")
+
+    # An additional JAR uses actual Fabric API package names, but is a standalone
+    # fixture so it cannot alter the default smoke test's mod count.
+    (OUT / "fixtures").mkdir(parents=True, exist_ok=True)
+    (OUT / "fabric-tick-classes").mkdir(parents=True, exist_ok=True)
+    run(["javac", "-encoding", "UTF-8", "-cp", OUT / "host",
+         "-d", OUT / "fabric-tick-classes",
+         ROOT / "examples/fabric-api-tick/src/demo/PlainTickMod.java"])
+    run(["jar", "--create", "--file", OUT / "fixtures/fabric-api-tick.jar",
+         "-C", OUT / "fabric-tick-classes", ".",
+         "-C", ROOT / "examples/fabric-api-tick", "fabric.mod.json"])
+    print("Built:", OUT / "mods/hello-fabric.jar",
+          OUT / "fixtures/fabric-api-tick.jar")
 
 if __name__ == "__main__":
     build()

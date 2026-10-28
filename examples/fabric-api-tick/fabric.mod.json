@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "fabric_api_tick_direct",
+  "version": "0.3.0",
+  "name": "Fabric API Tick ABI Demo",
+  "environment": "*",
+  "entrypoints": { "main": ["demo.PlainTickMod"] },
+  "depends": { "java": ">=21", "fabric-lifecycle-events-v1": "*" }
+}
