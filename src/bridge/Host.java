@@ -21,6 +21,9 @@ public final class Host {
     private static final List<String> LOADED = new ArrayList<>();
     private static final List<String> SKIPPED = new ArrayList<>();
     private static URLClassLoader runtimeLoader;
+    private static final List<Path> extractedJars = new ArrayList<>();
+    private static Path nestedDir;
+    private static long totalNestedBytes;
 
     public static void main(String[] args) throws Exception {
         if (args.length != 4) {
@@ -61,7 +64,11 @@ public final class Host {
                 }
             }
         } finally {
-            if (runtimeLoader != null) runtimeLoader.close();
+            try { if (runtimeLoader != null) runtimeLoader.close(); }
+            finally {
+                for (Path file : extractedJars) Files.deleteIfExists(file);
+                if (nestedDir != null) Files.deleteIfExists(nestedDir);
+            }
         }
     }
 
@@ -124,6 +131,48 @@ public final class Host {
      * Resolve declared Java mod dependencies before any initializer executes.
      * This only checks IDs; it does not implement Fabric version-range resolution.
      */
+    /**
+     * Include Fabric's explicitly declared Jar-in-Jar dependencies on the JVM
+     * classpath, using arbitrary temp filenames rather than untrusted ZIP paths.
+     */
+    private static void includeNested(Path jar, List<URL> urls) throws Exception {
+        try (ZipFile archive = new ZipFile(jar.toFile())) {
+            ZipEntry entry = archive.getEntry("fabric.mod.json");
+            if (entry == null || entry.getSize() > MAX_METADATA_BYTES) return;
+            byte[] bytes;
+            try (InputStream in = archive.getInputStream(entry)) { bytes = in.readNBytes(MAX_METADATA_BYTES + 1); }
+            if (bytes.length > MAX_METADATA_BYTES) return;
+            Object obj = Json.parse(new String(bytes, StandardCharsets.UTF_8));
+            if (!(obj instanceof Map<?, ?> map) || !(map.get("jars") instanceof List<?> nested)) return;
+            for (Object declaration : nested) {
+                if (!(declaration instanceof Map<?, ?> d) || !(d.get("file") instanceof String name))
+                    throw new IOException("Invalid Fabric nested JAR declaration");
+                final String prefix = "META-INF/jars/";
+                if (!name.startsWith(prefix) || !name.endsWith(".jar")
+                    || name.substring(prefix.length()).contains("/") || name.contains("..")
+                    || name.contains("\\"))
+                    throw new IOException("Unsafe nested JAR entry name");
+                if (extractedJars.size() >= 32) throw new IOException("Too many nested JARs");
+                ZipEntry dependency = archive.getEntry(name);
+                if (dependency == null || dependency.isDirectory() || dependency.getSize() > 16 * 1024 * 1024)
+                    throw new IOException("Nested JAR missing or oversized: " + name);
+                byte[] data;
+                try (InputStream in = archive.getInputStream(dependency)) {
+                    data = in.readNBytes(16 * 1024 * 1024 + 1);
+                }
+                if (data.length > 16 * 1024 * 1024 || totalNestedBytes + data.length > 32L * 1024 * 1024)
+                    throw new IOException("Nested JAR extraction size exceeded");
+                if (nestedDir == null) nestedDir = Files.createTempDirectory("java-bridge-jij-");
+                Path destination = nestedDir.resolve("nested-" + extractedJars.size() + ".jar");
+                Files.write(destination, data, StandardOpenOption.CREATE_NEW);
+                extractedJars.add(destination);
+                totalNestedBytes += data.length;
+                urls.add(destination.toUri().toURL());
+                System.out.println("NESTED_JAR " + jar.getFileName() + " " + name);
+            }
+        }
+    }
+
     private static void loadMods(Path modsDir) throws Exception {
         if (!Files.isDirectory(modsDir)) throw new IllegalArgumentException("Missing mods folder: " + modsDir);
         FabricLoader.bridgeConfigure(modsDir);
@@ -132,9 +181,15 @@ public final class Host {
             jars = paths.filter(path -> path.getFileName().toString().endsWith(".jar")).sorted().limit(101).toList();
         }
         if (jars.size() > 100) throw new IllegalArgumentException("Limit is 100 JARs in this proof-of-concept");
-        URL[] urls = new URL[jars.size()];
-        for (int i = 0; i < jars.size(); i++) urls[i] = jars.get(i).toUri().toURL();
-        runtimeLoader = new URLClassLoader(urls, Host.class.getClassLoader());
+        List<URL> urls = new ArrayList<>();
+        for (Path jar : jars) {
+            urls.add(jar.toUri().toURL());
+            try { includeNested(jar, urls); }
+            catch (Exception error) {
+                System.err.println("NESTED_JAR_WARNING " + jar.getFileName() + ": " + error.getMessage());
+            }
+        }
+        runtimeLoader = new URLClassLoader(urls.toArray(URL[]::new), Host.class.getClassLoader());
         URLClassLoader loader = runtimeLoader;
 
         Map<String, Candidate> pending = new LinkedHashMap<>();

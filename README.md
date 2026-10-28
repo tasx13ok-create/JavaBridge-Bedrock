@@ -10,6 +10,7 @@
 - Compile an original demonstration Fabric-style JAR, then execute its Java bytecode through a small local JVM host.
 - Relay simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
 - Handle the first bounded Java-to-native response, `BedrockActions.log`, and queue it to be emitted by a Bedrock event callback; tested on Windows and Linux C++ harnesses. No world mutations yet.
+- Extracts Fabric-declared nested JAR library dependencies to a temporary classpath, with strict path validation and size limits; does not initialize nested mods automatically.
 - Deterministic multi-JAR initializer order based on declared Fabric mod dependencies, with explicit diagnostics for missing dependencies, cycles, and duplicate IDs. Dependency version ranges are not implemented.
 - Minimal **Fabric Loader environment/config-path API** shim: `FabricLoader.getInstance().isModLoaded`, `getGameDir`, `getConfigDir`, and `getEnvironmentType`. The paths point to the sidecar workspace rather than Minecraft game directories. This is not a full Fabric Loader implementation.
 - Minimal **Fabric API tick event ABI** shims for `ServerTickEvents.START_SERVER_TICK` and `END_SERVER_TICK` with a deliberately tiny `MinecraftServer` facade. An independently built JAR using Fabric API import names runs unchanged in the JVM sidecar. This only demonstrates that specific binary interface, not Fabric API or Minecraft Java Edition compatibility.
