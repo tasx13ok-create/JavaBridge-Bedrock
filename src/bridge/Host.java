@@ -213,7 +213,7 @@ public final class Host {
                 Mod mod = metadata(jar);
                 if (mod == null) {
                     skip(jar, "non-fabric-jar");
-                } else if (!mod.id.matches("[a-z][a-z0-9_.-]{1,63}")) {
+                } else if (!mod.id.matches("[a-z][a-z0-9_.-]{0,63}")) {
                     skip(jar, "invalid mod ID: " + mod.id);
                 } else if (pending.containsKey(mod.id)) {
                     skip(jar, "duplicate mod ID: " + mod.id);
