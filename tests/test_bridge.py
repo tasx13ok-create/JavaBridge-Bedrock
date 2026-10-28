@@ -59,6 +59,15 @@ class BridgeTest(unittest.TestCase):
         self.assertIn("HELLO_FABRIC_INIT direct Java bytecode executed", out)
         self.assertIn("HELLO_FABRIC_TICK 3", out)
 
+    def test_overlong_client_handshake_rejected_without_unbounded_read(self):
+        proc, connection, _ = self.start_host()
+        with connection:
+            connection.sendall(b"A" * 8192 + b"\\n")
+            connection.shutdown(socket.SHUT_WR)
+        _out, errors = proc.communicate(timeout=7)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("IPC command line exceeds limit", errors)
+
     def test_bad_auth_rejected(self):
         proc, connection, _ = self.start_host()
         with connection, connection.makefile("rw", buffering=1) as wire:
