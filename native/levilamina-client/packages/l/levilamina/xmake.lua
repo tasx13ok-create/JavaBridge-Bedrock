@@ -56,6 +56,22 @@ package("levilamina")
 ]]
         local patched = original:gsub(anchor, anchor .. "\n" .. extra, 1)
         io.writefile(source, patched)
+
+        -- Upstream generated BedrockSpawner has an inline destructor, but
+        -- its unique_ptr member targets are only forward-declared.
+        -- Include definitions in the generated header for this tagged build.
+        local spawner = "src/mc/world/level/BedrockSpawner.h"
+        if not os.isfile(spawner) then spawner = path.join("levilamina", spawner) end
+        assert(os.isfile(spawner), "Expected BedrockSpawner.h missing")
+        local header = io.readfile(spawner)
+        local include_anchor = '#include "mc/world/level/Spawner.h"'
+        assert(header:find(include_anchor, 1, true), "BedrockSpawner include layout changed")
+        local includes = [[
+#include "mc/world/actor/ActorSpawnRuleGroup.h"
+#include "mc/world/actor/registry/SpawnGroupRegistry.h"
+#include "mc/world/level/chunk/EntityTypeCache.h"
+]]
+        io.writefile(spawner, header:gsub(include_anchor, include_anchor .. "\n" .. includes, 1))
         cprint("${bright yellow}Applying JavaBridge temporary upstream compile workaround (26.51.9)${clear}")
         import("package.tools.xmake").install(package, {"--target_type=" .. package:config("target_type")})
     end)
