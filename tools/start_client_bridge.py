@@ -2,6 +2,8 @@
 """Run local authenticated Java host for a separate LeviLamina client plugin."""
 import argparse
 import os
+from queue import Queue, Empty
+import time
 from pathlib import Path
 import secrets
 import socket
@@ -10,6 +12,49 @@ import sys
 import threading
 
 ROOT = Path(__file__).resolve().parents[1]
+STARTUP_TIMEOUT_SECONDS = 45
+
+
+def _read_lines(pipe, queue: Queue) -> None:
+    try:
+        for line in pipe:
+            queue.put(line)
+    finally:
+        queue.put(None)
+
+
+def wait_for_ready(process, queue: Queue, seconds: float = STARTUP_TIMEOUT_SECONDS) -> None:
+    """Fail with a bounded deadline if approved Java bytecode hangs during init."""
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        try:
+            line = queue.get(timeout=min(0.3, max(0.001, deadline - time.monotonic())))
+        except Empty:
+            if process.poll() is not None:
+                raise RuntimeError("Java host exited before READY")
+            continue
+        if line is None:
+            raise RuntimeError("Java host closed stdout before READY")
+        print(line, end="", flush=True)
+        if line.startswith("READY port="):
+            return
+    raise TimeoutError("Java host did not become READY before the startup deadline")
+
+
+def forward_logs(process, queue: Queue) -> int:
+    """Transfer JVM logs without blocking indefinitely after process exit."""
+    while True:
+        try:
+            line = queue.get(timeout=0.3)
+        except Empty:
+            if process.poll() is not None:
+                return process.wait()
+            continue
+        if line is None:
+            return process.wait()
+        print(line, end="", flush=True)
+
+
 
 def session_path() -> Path:
     if os.name == "nt":
@@ -49,22 +94,19 @@ def main() -> int:
         "bridge.Host", str(args.mods), str(port), token, str(args.max_events),
         str(trusted)
     ], cwd=ROOT, stdout=subprocess.PIPE, stderr=None, text=True, bufsize=1)
+    log_queue: Queue = Queue()
+    threading.Thread(target=_read_lines, args=(proc.stdout, log_queue), daemon=True).start()
     try:
-        while True:
-            line = proc.stdout.readline()
-            if not line:
-                print("Host terminated before READY", file=sys.stderr)
-                return proc.wait() or 1
-            print(line, end="", flush=True)
-            if line.startswith("READY port="):
-                break
+        try:
+            wait_for_ready(proc, log_queue)
+        except (RuntimeError, TimeoutError) as problem:
+            print("JavaBridge startup failed: " + str(problem), file=sys.stderr)
+            return 1
         cfgpath.parent.mkdir(parents=True, exist_ok=True)
         cfgpath.write_text(f"PORT {port}\nTOKEN {token}\n", encoding="utf-8")
         if os.name != "nt": cfgpath.chmod(0o600)
         print("JavaBridge session ready; now start isolated Bedrock test instance.", flush=True)
-        thread = threading.Thread(target=lambda: [print(line, end="", flush=True) for line in proc.stdout], daemon=True)
-        thread.start()
-        return proc.wait()
+        return forward_logs(proc, log_queue)
     except KeyboardInterrupt:
         proc.terminate()
         try: proc.wait(timeout=5)
