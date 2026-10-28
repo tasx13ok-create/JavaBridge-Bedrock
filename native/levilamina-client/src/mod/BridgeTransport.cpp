@@ -1,11 +1,13 @@
 #include "mod/BridgeTransport.h"
 
 #include <array>
+#include <utility>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <string_view>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -127,6 +129,38 @@ void BridgeTransport::stop() {
     cv_.notify_all();
     if (worker_.joinable()) worker_.join();
 }
+std::vector<std::string> BridgeTransport::drainLogs() {
+    std::lock_guard lock(mutex_);
+    std::vector<std::string> result;
+    result.reserve(logs_.size());
+    while (!logs_.empty()) {
+        result.push_back(std::move(logs_.front()));
+        logs_.pop_front();
+    }
+    return result;
+}
+static int hexDigit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+static bool decodeLog(std::string const& wire, std::string& result) {
+    constexpr std::string_view prefix = "ACTION LOG ";
+    if (!wire.starts_with(prefix)) return false;
+    auto payload = std::string_view(wire).substr(prefix.size());
+    if (payload.empty() || payload.size() > 480 || payload.size() % 2) return false;
+    result.clear();
+    for (std::size_t p = 0; p < payload.size(); p += 2) {
+        int hi = hexDigit(payload[p]), lo = hexDigit(payload[p + 1]);
+        if (hi < 0 || lo < 0) return false;
+        char byte = static_cast<char>((hi << 4) | lo);
+        // Avoid injecting control characters into plugin log output.
+        if (static_cast<unsigned char>(byte) < 0x20 && byte != '\t') return false;
+        result.push_back(byte);
+    }
+    return true;
+}
+
 void BridgeTransport::enqueue(char const* event) {
     if (std::string(event) != "TICK" && std::string(event) != "JOIN" && std::string(event) != "LEAVE") return;
     {
@@ -166,7 +200,29 @@ void BridgeTransport::run() {
             event = queue_.front();
             queue_.pop_front();
         }
-        if (!sendLine(sock, event) || readLine(sock).find(event + "_OK") != 0) {
+        if (!sendLine(sock, event)) {
+            ++dropped_;
+            closeSocket(sock);
+            sock = invalidSocket;
+            continue;
+        }
+        bool acknowledged = false;
+        // Per event: at most sixteen Java sidecar action messages, then ACK.
+        for (int responseCount = 0; responseCount < 17; ++responseCount) {
+            std::string line = readLine(sock);
+            if (line.starts_with(event + "_OK")) {
+                acknowledged = true;
+                break;
+            }
+            std::string message;
+            if (!decodeLog(line, message)) break;
+            {
+                std::lock_guard lock(mutex_);
+                if (logs_.size() == 128) ++dropped_;
+                else logs_.push_back(std::move(message));
+            }
+        }
+        if (!acknowledged) {
             ++dropped_;
             closeSocket(sock);
             sock = invalidSocket;

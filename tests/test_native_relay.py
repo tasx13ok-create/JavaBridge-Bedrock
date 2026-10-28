@@ -40,6 +40,7 @@ class NativeRelayTest(unittest.TestCase):
                                         capture_output=True, text=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
                 self.assertIn("RELAY_DROPPED=0", result.stdout)
+                self.assertIn("LOG_RELAY=Hello from Java JAR", result.stdout)
                 host.terminate()
                 output, err = host.communicate(timeout=10)
                 self.assertIn("HELLO_FABRIC_JOIN", output)

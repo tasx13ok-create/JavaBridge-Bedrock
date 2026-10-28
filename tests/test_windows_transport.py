@@ -46,6 +46,7 @@ class WindowsRelaySmoke(unittest.TestCase):
                 )
                 self.assertEqual(relay.returncode, 0, relay.stdout + relay.stderr)
                 self.assertIn("RELAY_DROPPED=0", relay.stdout)
+                self.assertIn("LOG_RELAY=Hello from Java JAR", relay.stdout)
             finally:
                 if process.poll() is None:
                     process.terminate()

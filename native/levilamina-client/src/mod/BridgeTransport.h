@@ -7,6 +7,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace cfbridge {
 /** Sends events to Java sidecar; never does network I/O on gameplay callbacks. */
@@ -20,11 +21,14 @@ public:
     void stop();
     void enqueue(char const* event);
     std::size_t dropped() const { return dropped_.load(); }
+    /** Drain validated Java LOG actions on the caller (game) thread. */
+    std::vector<std::string> drainLogs();
 private:
     void run();
     std::mutex mutex_;
     std::condition_variable cv_;
     std::deque<std::string> queue_;
+    std::deque<std::string> logs_;
     std::thread worker_;
     std::atomic<std::size_t> dropped_{0};
     bool running_ = false;

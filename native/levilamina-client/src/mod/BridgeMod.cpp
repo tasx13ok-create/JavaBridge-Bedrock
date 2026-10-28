@@ -14,9 +14,15 @@ bool BridgeMod::load() { return true; }
 bool BridgeMod::enable() {
     transport_.start();
     auto& bus = ll::event::EventBus::getInstance();
-    tick_ = bus.emplaceListener<ll::event::ServerLevelTickEvent>([this](auto&) { transport_.enqueue("TICK"); });
-    join_ = bus.emplaceListener<ll::event::ClientJoinLevelEvent>([this](auto&) { transport_.enqueue("JOIN"); });
-    leave_ = bus.emplaceListener<ll::event::ClientExitLevelEvent>([this](auto&) { transport_.enqueue("LEAVE"); });
+    auto flush = [this] {
+        // In-game event callbacks occur on the Bedrock event thread.
+        // Worker thread NEVER invokes Bedrock logger or game APIs directly.
+        for (auto const& message : transport_.drainLogs())
+            getSelf().getLogger().info("JavaBridge Java action: {}", message);
+    };
+    tick_ = bus.emplaceListener<ll::event::ServerLevelTickEvent>([this, flush](auto&) { transport_.enqueue("TICK"); flush(); });
+    join_ = bus.emplaceListener<ll::event::ClientJoinLevelEvent>([this, flush](auto&) { transport_.enqueue("JOIN"); flush(); });
+    leave_ = bus.emplaceListener<ll::event::ClientExitLevelEvent>([this, flush](auto&) { transport_.enqueue("LEAVE"); flush(); });
     if (!tick_ || !join_ || !leave_) {
         disable();
         return false;
