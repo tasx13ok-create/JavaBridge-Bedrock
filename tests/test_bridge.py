@@ -62,7 +62,7 @@ class BridgeTest(unittest.TestCase):
     def test_overlong_client_handshake_rejected_without_unbounded_read(self):
         proc, connection, _ = self.start_host()
         with connection:
-            connection.sendall(b"A" * 8192 + b"\\n")
+            connection.sendall(b"A" * 8192 + b"\n")
             connection.shutdown(socket.SHUT_WR)
         _out, errors = proc.communicate(timeout=7)
         self.assertNotEqual(proc.returncode, 0)
