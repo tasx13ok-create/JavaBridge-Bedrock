@@ -12,6 +12,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 /** Direct-JAR JVM experiment. Mod bytecode is not sandboxed; use only trusted JARs. */
 public final class Host {
@@ -81,7 +82,7 @@ public final class Host {
                         }
                     } else if (command.equals("TICK")) {
                         if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
-                        dispatch(out, "TICK", BedrockEvents.dispatchTick() + ServerTickEvents.fire());
+                        dispatch(out, "TICK", BedrockEvents.dispatchTick() + ServerTickEvents.fire() + ClientTickEvents.fire());
                     } else if (command.equals("STOP")) { out.println("BYE"); break; }
                     else out.println("ERROR unsupported-command");
                 }
