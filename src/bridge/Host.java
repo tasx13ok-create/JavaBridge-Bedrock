@@ -48,12 +48,12 @@ public final class Host {
                 socket.setSoTimeout(600000);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
                 PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
-                String hello = in.readLine();
+                String hello = readBoundedLine(in, 512);
                 if (hello == null || !hello.equals("HELLO " + token)) { out.println("ERROR unauthorized"); return; }
                 out.println("OK bridge-v0");
                 int count = 0;
                 String command;
-                while ((command = in.readLine()) != null) {
+                while ((command = readBoundedLine(in, 256)) != null) {
                     if (command.equals("STATUS")) out.println("STATUS loaded=" + LOADED.size() + " skipped=" + SKIPPED.size() + " handlers=" + BedrockEvents.tickHandlerCount());
                     else if (command.equals("JOIN")) dispatch(out, "JOIN", BedrockEvents.dispatchJoin());
                     else if (command.equals("LEAVE")) dispatch(out, "LEAVE", BedrockEvents.dispatchLeave());
@@ -71,6 +71,20 @@ public final class Host {
                 if (nestedDir != null) Files.deleteIfExists(nestedDir);
             }
         }
+    }
+
+    /** Refuse unbounded text from the local client before allocating large strings. */
+    private static String readBoundedLine(BufferedReader input, int limit) throws IOException {
+        StringBuilder line = new StringBuilder(Math.min(limit, 128));
+        int value;
+        while ((value = input.read()) >= 0) {
+            if (value == '\n') return line.toString();
+            if (value == '\r') continue;
+            if (line.length() >= limit) throw new IOException("IPC command line exceeds limit");
+            if (value < 32) throw new IOException("Unexpected control character in IPC");
+            line.append((char) value);
+        }
+        return line.isEmpty() ? null : line.toString();
     }
 
     /** Emit bounded sidecar actions before the event acknowledgement (protocol v0). */
