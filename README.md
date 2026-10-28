@@ -6,7 +6,7 @@
 
 ## Verified capabilities
 
-- Read downloaded CurseForge mod JAR metadata locally and without modifying files: Fabric, Forge, NeoForge, Quilt.
+- Read downloaded CurseForge mod JAR metadata locally and without modifying files: Fabric, Forge, NeoForge, Quilt. Inspect CurseForge Java modpack `manifest.json` files without downloading mods or installing a modpack.
 - Compile an original demonstration Fabric-style JAR, then execute its Java bytecode through a small local JVM host.
 - Relay simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
 - Handle the first bounded Java-to-native response, `BedrockActions.log`, and queue it to be emitted by a Bedrock event callback; tested on Windows and Linux C++ harnesses. No world mutations yet.
