@@ -92,7 +92,7 @@ def main() -> int:
     proc = subprocess.Popen([
         "java", "--limit-modules", "java.base", "-cp", str(ROOT / "out/host"),
         "bridge.Host", str(args.mods), str(port), token, str(args.max_events),
-        str(trusted)
+        str(trusted), "--reconnect"
     ], cwd=ROOT, stdout=subprocess.PIPE, stderr=None, text=True, bufsize=1)
     log_queue: Queue = Queue()
     threading.Thread(target=_read_lines, args=(proc.stdout, log_queue), daemon=True).start()
