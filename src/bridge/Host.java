@@ -45,11 +45,11 @@ public final class Host {
                 String command;
                 while ((command = in.readLine()) != null) {
                     if (command.equals("STATUS")) out.println("STATUS loaded=" + LOADED.size() + " skipped=" + SKIPPED.size() + " handlers=" + BedrockEvents.tickHandlerCount());
-                    else if (command.equals("JOIN")) out.println("JOIN_OK handlers=" + BedrockEvents.dispatchJoin());
-                    else if (command.equals("LEAVE")) out.println("LEAVE_OK handlers=" + BedrockEvents.dispatchLeave());
+                    else if (command.equals("JOIN")) dispatch(out, "JOIN", BedrockEvents.dispatchJoin());
+                    else if (command.equals("LEAVE")) dispatch(out, "LEAVE", BedrockEvents.dispatchLeave());
                     else if (command.equals("TICK")) {
                         if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
-                        out.println("TICK_OK handlers=" + BedrockEvents.dispatchTick());
+                        dispatch(out, "TICK", BedrockEvents.dispatchTick());
                     } else if (command.equals("STOP")) { out.println("BYE"); break; }
                     else out.println("ERROR unsupported-command");
                 }
@@ -57,6 +57,12 @@ public final class Host {
         } finally {
             if (runtimeLoader != null) runtimeLoader.close();
         }
+    }
+
+    /** Emit bounded sidecar actions before the event acknowledgement (protocol v0). */
+    private static void dispatch(PrintWriter out, String event, int handlers) {
+        for (String action : BedrockActions.drain()) out.println(action);
+        out.println(event + "_OK handlers=" + handlers);
     }
 
     @SuppressWarnings("unchecked")
