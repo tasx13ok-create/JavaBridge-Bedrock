@@ -13,7 +13,7 @@ DIRECT_FILES = [
     "run-demo-host.bat", "run-demo-adapter.bat", "run-demo-host.sh",
     "run-client-bridge.bat", "tools/build.py", "tools/start_client_bridge.py",
     "tools/adapter_sim.py", "tools/inspect.py", "tools/inspect_modpack.py",
-    "tools/approve_mods.py"
+    "tools/approve_mods.py", "tools/curseforge_download.py"
 ]
 GLOBS = [
     "src/**/*.java",

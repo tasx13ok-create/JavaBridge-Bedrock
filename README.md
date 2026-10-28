@@ -55,6 +55,16 @@ python tools/package_runtime.py
 
 This ZIP deliberately contains **no native Bedrock DLL** and is not a one-click mod installer. GitHub Actions also publishes a runtime archive as a build artifact for source inspection and standalone tests.
 
+## Official CurseForge file downloads (optional; requires approved API access)
+
+CurseForge distributes mod files via a key-authenticated API/CDN. An approved developer key is required in `CURSEFORGE_API_KEY`. Download by the exact CurseForge project ID and file ID:
+
+```sh
+python tools/curseforge_download.py --mod-id 123 --file-id 456 --dest downloaded-curseforge-mods
+```
+
+The downloader makes official authenticated API/CDN requests, checks size and archives, refuses untrusted redirect destinations, and **only saves the downloaded JAR for review**. No download happens without a key, and no downloaded JAR is automatically installed, approved, or executed. Existing copyright/mod licenses still apply. No live CurseForge account/API-key integration has yet been tested in CI (offline mock tests only).
+
 ## Bedrock Windows integration (UNVERIFIED)
 
 This project includes `native/levilamina-client/` source that follows the [official LeviLamina mod template](https://github.com/LiteLDev/levilamina-mod-template). This requires the compatible LeviLamina client, supported Bedrock version, Visual Studio build tools, clang-cl and xmake.
