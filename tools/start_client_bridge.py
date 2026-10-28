@@ -41,9 +41,14 @@ def wait_for_ready(process, queue: Queue, seconds: float = STARTUP_TIMEOUT_SECON
     raise TimeoutError("Java host did not become READY before the startup deadline")
 
 
-def forward_logs(process, queue: Queue) -> int:
-    """Transfer JVM logs without blocking indefinitely after process exit."""
+def forward_logs(process, queue: Queue, stop_file: Path | None = None) -> int:
+    """Transfer JVM logs and honor a GUI-requested graceful sidecar shutdown."""
     while True:
+        if stop_file is not None and stop_file.exists():
+            stop_file.unlink(missing_ok=True)
+            if process.poll() is None:
+                process.terminate()
+            return process.wait()
         try:
             line = queue.get(timeout=0.3)
         except Empty:
@@ -54,6 +59,9 @@ def forward_logs(process, queue: Queue) -> int:
             return process.wait()
         print(line, end="", flush=True)
 
+
+def stop_path() -> Path:
+    return session_path().with_name("stop-request.txt")
 
 
 def session_path() -> Path:
@@ -85,6 +93,7 @@ def main() -> int:
     if cfgpath.exists():
         print("Existing session found; refusing to overwrite", file=sys.stderr)
         return 2
+    stop_path().unlink(missing_ok=True)
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -106,7 +115,7 @@ def main() -> int:
         cfgpath.write_text(f"PORT {port}\nTOKEN {token}\n", encoding="utf-8")
         if os.name != "nt": cfgpath.chmod(0o600)
         print("JavaBridge session ready; now start isolated Bedrock test instance.", flush=True)
-        return forward_logs(proc, log_queue)
+        return forward_logs(proc, log_queue, stop_path())
     except KeyboardInterrupt:
         proc.terminate()
         try: proc.wait(timeout=5)
@@ -115,6 +124,7 @@ def main() -> int:
             proc.wait()
         return 130
     finally:
+        stop_path().unlink(missing_ok=True)
         if cfgpath.is_file():
             try:
                 if cfgpath.read_text(encoding="utf-8") == f"PORT {port}\nTOKEN {token}\n":
