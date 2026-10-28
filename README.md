@@ -37,6 +37,15 @@ python tools/adapter_sim.py
 
 The printed demo token is not for real sessions.
 
+**JAR approval for real sidecar launcher:** Java mod bytecode executes with your local user's OS privileges. Download and inspect only mods you trust; before using `tools/start_client_bridge.py`, explicitly approve each exact JAR hash:
+
+```sh
+python tools/approve_mods.py --mods out/mods --yes
+python tools/start_client_bridge.py --mods out/mods
+```
+
+`--yes` is an explicit attestation that you've reviewed the JARs. This approval is **not a malware scanner**. Changing any JAR invalidates its approval. Standalone `Host` debug mode without an allowlist remains available for CI fixtures only.
+
 Build a reproducible runtime-only ZIP (including Java classes and demo JARs):
 
 ```sh

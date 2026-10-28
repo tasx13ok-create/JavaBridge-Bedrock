@@ -23,12 +23,18 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mods", type=Path, default=ROOT / "out/mods")
     ap.add_argument("--max-events", type=int, default=200000)
+    ap.add_argument("--trust-file", type=Path, help="Hash allowlist (default: <mods>/approved-mods.tsv)")
     args = ap.parse_args()
     if not (ROOT / "out/host/bridge/Host.class").exists():
         print("Run python tools/build.py first", file=sys.stderr)
         return 2
     if not args.mods.is_dir() or not 1 <= args.max_events <= 1000000:
         print("Invalid mods folder or max-events", file=sys.stderr)
+        return 2
+    trusted = args.trust_file or args.mods / "approved-mods.tsv"
+    if not trusted.is_file():
+        print("Refusing to start unapproved Java mods. Review all JARs then run:", file=sys.stderr)
+        print(f"  python tools/approve_mods.py --mods \"{args.mods}\" --yes", file=sys.stderr)
         return 2
     cfgpath = session_path()
     if cfgpath.exists():
@@ -40,7 +46,8 @@ def main() -> int:
     token = secrets.token_hex(32)
     proc = subprocess.Popen([
         "java", "--limit-modules", "java.base", "-cp", str(ROOT / "out/host"),
-        "bridge.Host", str(args.mods), str(port), token, str(args.max_events)
+        "bridge.Host", str(args.mods), str(port), token, str(args.max_events),
+        str(trusted)
     ], cwd=ROOT, stdout=subprocess.PIPE, stderr=None, text=True, bufsize=1)
     try:
         while True:

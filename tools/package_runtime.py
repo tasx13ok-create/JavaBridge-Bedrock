@@ -12,7 +12,8 @@ DIRECT_FILES = [
     "README.md", "LICENSE", "RELEASE_NOTES.md",
     "run-demo-host.bat", "run-demo-adapter.bat", "run-demo-host.sh",
     "run-client-bridge.bat", "tools/build.py", "tools/start_client_bridge.py",
-    "tools/adapter_sim.py", "tools/inspect.py", "tools/inspect_modpack.py"
+    "tools/adapter_sim.py", "tools/inspect.py", "tools/inspect_modpack.py",
+    "tools/approve_mods.py"
 ]
 GLOBS = [
     "src/**/*.java",
