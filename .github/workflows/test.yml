@@ -27,6 +27,14 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Inspect authored demo JAR
         run: python tools/inspect.py out/mods
+      - name: Package source and JVM sidecar runtime
+        run: python tools/package_runtime.py
+      - name: Upload runtime-only source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: JavaBridge-sidecar-runtime-ubuntu
+          path: out/JavaBridge-Runtime-v0.3.zip
+
 
   windows-transport:
     name: Windows native TCP relay smoke

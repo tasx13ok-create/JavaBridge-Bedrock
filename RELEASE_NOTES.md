@@ -7,3 +7,10 @@
 - Added GitHub Actions build-and-test workflow.
 
 **Status:** Standalone native-to-Java demo validated previously; GitHub CI will independently verify the checked-in code. No Bedrock Windows DLL build or third-party CurseForge mod compatibility proven.
+
+## v0.3 development milestones (2026-10-27)
+
+- Added Fabric tick callback, limited Fabric Loader API, and dependency-aware direct-JAR initialization.
+- Added a strictly bounded Java -> native LOG action channel, with Windows + Linux round-trip tests.
+- Added offline mod scanner flags and reproducible sidecar-runtime ZIP packaging.
+- The full LeviLamina Bedrock client DLL remains unverified; SDK builds are being debugged separately.

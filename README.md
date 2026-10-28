@@ -36,6 +36,14 @@ python tools/adapter_sim.py
 
 The printed demo token is not for real sessions.
 
+Build a reproducible runtime-only ZIP (including Java classes and demo JARs):
+
+```sh
+python tools/package_runtime.py
+```
+
+This ZIP deliberately contains **no native Bedrock DLL** and is not a one-click mod installer. GitHub Actions also publishes a runtime archive as a build artifact for source inspection and standalone tests.
+
 ## Bedrock Windows integration (UNVERIFIED)
 
 This project includes `native/levilamina-client/` source that follows the [official LeviLamina mod template](https://github.com/LiteLDev/levilamina-mod-template). This requires the compatible LeviLamina client, supported Bedrock version, Visual Studio build tools, clang-cl and xmake.
