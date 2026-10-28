@@ -2,6 +2,8 @@ package bridge;
 
 import java.io.*;
 import java.net.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
@@ -27,8 +29,8 @@ public final class Host {
     private static long totalNestedBytes;
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 4) {
-            System.err.println("usage: java bridge.Host <mods-folder> <port> <local-token> <max-events>");
+        if (args.length != 4 && args.length != 5) {
+            System.err.println("usage: java bridge.Host <mods-folder> <port> <local-token> <max-events> [approved-hashes.tsv]");
             System.exit(2);
         }
         Path modsDir = Paths.get(args[0]);
@@ -38,7 +40,10 @@ public final class Host {
         if (token.length() < 16) throw new IllegalArgumentException("Token must be at least 16 characters");
         if (port < 1 || port > 65535) throw new IllegalArgumentException("Invalid port");
         if (maxEvents < 1 || maxEvents > 1_000_000) throw new IllegalArgumentException("Invalid max events");
-        loadMods(modsDir);
+        if (args.length == 4) {
+            System.err.println("WARNING: no approval file; run only known demo JARs");
+        }
+        loadMods(modsDir, args.length == 5 ? Paths.get(args[4]) : null);
         try (ServerSocket server = new ServerSocket()) {
             server.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), port));
             server.setSoTimeout(600000);
@@ -188,7 +193,50 @@ public final class Host {
         }
     }
 
-    private static void loadMods(Path modsDir) throws Exception {
+    /** Approve only exact downloaded bytes, before they reach the JVM classpath. */
+    private static List<Path> verifiedJars(List<Path> jars, Path trustFile) throws Exception {
+        if (!Files.isRegularFile(trustFile)) throw new IOException("Approval file missing: " + trustFile);
+        Map<String, String> approved = new LinkedHashMap<>();
+        List<String> lines = Files.readAllLines(trustFile, StandardCharsets.UTF_8);
+        if (lines.size() > 1000) throw new IOException("Approval file too large");
+        for (String line : lines) {
+            if (line.isBlank() || line.startsWith("#")) continue;
+            String[] pair = line.split("\\t", -1);
+            if (pair.length != 2 || !pair[0].matches("[0-9a-f]{64}")
+                    || pair[1].isBlank() || pair[1].contains("/") || pair[1].contains("\\\\")
+                    || pair[1].contains("..")) {
+                throw new IOException("Invalid mod approval entry");
+            }
+            if (approved.putIfAbsent(pair[1], pair[0]) != null)
+                throw new IOException("Duplicate approval entry");
+        }
+        List<Path> result = new ArrayList<>();
+        for (Path jar : jars) {
+            String name = jar.getFileName().toString();
+            String expected = approved.get(name);
+            if (expected == null) {
+                skip(jar, "not approved for execution");
+                continue;
+            }
+            MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            try (InputStream in = Files.newInputStream(jar)) {
+                byte[] block = new byte[64 * 1024];
+                for (int size; (size = in.read(block)) >= 0;) {
+                    if (size > 0) sha.update(block, 0, size);
+                }
+            }
+            StringBuilder actual = new StringBuilder(64);
+            for (byte b : sha.digest()) actual.append(String.format("%02x", b & 0xff));
+            if (!actual.toString().equals(expected)) {
+                skip(jar, "SHA-256 approval mismatch");
+                continue;
+            }
+            result.add(jar);
+        }
+        return result;
+    }
+
+    private static void loadMods(Path modsDir, Path trustFile) throws Exception {
         if (!Files.isDirectory(modsDir)) throw new IllegalArgumentException("Missing mods folder: " + modsDir);
         FabricLoader.bridgeConfigure(modsDir);
         List<Path> jars;
@@ -196,6 +244,7 @@ public final class Host {
             jars = paths.filter(path -> path.getFileName().toString().endsWith(".jar")).sorted().limit(101).toList();
         }
         if (jars.size() > 100) throw new IllegalArgumentException("Limit is 100 JARs in this proof-of-concept");
+        if (trustFile != null) jars = verifiedJars(jars, trustFile);
         List<URL> urls = new ArrayList<>();
         for (Path jar : jars) {
             urls.add(jar.toUri().toURL());
