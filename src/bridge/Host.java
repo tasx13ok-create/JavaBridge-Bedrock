@@ -15,7 +15,8 @@ public final class Host {
     private record Mod(String id, List<String> mainEntries, Set<String> required) {}
     private record Candidate(Path file, Mod mod) {}
     private static final Set<String> BUILTIN_DEPENDENCIES = Set.of(
-        "java", "minecraft", "fabricloader", "fabric-lifecycle-events-v1"
+        "java", "minecraft", "fabricloader", "fabric-lifecycle-events-v1",
+        "fabric-api", "fabric-api-base"
     );
     private static final int MAX_METADATA_BYTES = 1024 * 1024;
     private static final List<String> LOADED = new ArrayList<>();
