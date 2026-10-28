@@ -15,6 +15,8 @@
 - Minimal **Fabric Loader environment/config-path API** shim: `FabricLoader.getInstance().isModLoaded`, `getGameDir`, `getConfigDir`, and `getEnvironmentType`. The paths point to the sidecar workspace rather than Minecraft game directories. This is not a full Fabric Loader implementation.
 - Original minimal **Fabric event factory ABI** shim: `EventFactory.createArrayBacked` and `Event.invoker` for basic multi-listener events. Named phase ordering is intentionally unsupported.
 - Minimal **Fabric API tick event ABI** shims for `ServerTickEvents.START_SERVER_TICK` and `END_SERVER_TICK` with a deliberately tiny `MinecraftServer` facade. An independently built JAR using Fabric API import names runs unchanged in the JVM sidecar. This only demonstrates that specific binary interface, not Fabric API or Minecraft Java Edition compatibility.
+- Experimental Fabric client tick ABI: `ClientTickEvents.START_CLIENT_TICK` and `END_CLIENT_TICK` with a tiny `MinecraftClient` facade. The separately compiled Java JAR fixture executes against these symbols, but it does not expose the actual Java Edition client.
+- Production host `--reconnect` retains its JVM and approved Java mods across client transport disconnects, with loopback-only authenticated reconnects.
 - Unit and integration tests for the host, inspector, token rejection, and C++ worker.
 - Source for a LeviLamina Windows Bedrock client plugin wired to client join/exit and server-level tick events (not yet validated in Bedrock).
 
