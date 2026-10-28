@@ -8,7 +8,7 @@
 
 - Read downloaded CurseForge mod JAR metadata locally and without modifying files: Fabric, Forge, NeoForge, Quilt. Inspect CurseForge Java modpack `manifest.json` files without downloading mods or installing a modpack.
 - Compile an original demonstration Fabric-style JAR, then execute its Java bytecode through a small local JVM host.
-- Relay simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
+- Relay bounded `BREAK x y z` block-break coordinate events as well as simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
 - Support bounded Java-to-native `BedrockActions.log` and `BedrockActions.chat` actions. The C++ relay validates and queues these on its worker thread; the unverified Bedrock client plugin is designed to send announcements to connected players during integrated server ticks. Windows/Linux relay tests confirm protocol delivery, **not** in-game chat.
 - Extracts Fabric-declared nested JAR library dependencies to a temporary classpath, with strict path validation and size limits; does not initialize nested mods automatically.
 - Deterministic multi-JAR initializer order based on declared Fabric mod dependencies, with explicit diagnostics for missing dependencies, cycles, and duplicate IDs. Dependency version ranges are not implemented.

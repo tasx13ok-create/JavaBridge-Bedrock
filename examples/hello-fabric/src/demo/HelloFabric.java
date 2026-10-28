@@ -15,5 +15,7 @@ public final class HelloFabric implements ModInitializer {
         });
         BedrockEvents.onJoin(() -> { System.out.println("HELLO_FABRIC_JOIN"); BedrockActions.log("Hello from Java JAR"); BedrockActions.chat("JavaBridge active"); });
         BedrockEvents.onLeave(() -> System.out.println("HELLO_FABRIC_LEAVE"));
+        BedrockEvents.onBlockBreak(event ->
+            System.out.println("HELLO_FABRIC_BREAK " + event.x() + "," + event.y() + "," + event.z()));
     }
 }

@@ -62,7 +62,23 @@ public final class Host {
                     if (command.equals("STATUS")) out.println("STATUS loaded=" + LOADED.size() + " skipped=" + SKIPPED.size() + " handlers=" + BedrockEvents.tickHandlerCount());
                     else if (command.equals("JOIN")) dispatch(out, "JOIN", BedrockEvents.dispatchJoin());
                     else if (command.equals("LEAVE")) dispatch(out, "LEAVE", BedrockEvents.dispatchLeave());
-                    else if (command.equals("TICK")) {
+                    else if (command.startsWith("BREAK ")) {
+                        if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
+                        String[] data = command.split(" ", -1);
+                        if (data.length != 4) { out.println("ERROR invalid-break"); continue; }
+                        try {
+                            int x = Integer.parseInt(data[1]);
+                            int y = Integer.parseInt(data[2]);
+                            int z = Integer.parseInt(data[3]);
+                            if (Math.abs((long)x) > 30000000L || y < -128 || y > 512 || Math.abs((long)z) > 30000000L) {
+                                out.println("ERROR invalid-break-coordinates");
+                                continue;
+                            }
+                            dispatch(out, "BREAK", BedrockEvents.dispatchBlockBreak(x, y, z));
+                        } catch (NumberFormatException error) {
+                            out.println("ERROR invalid-break");
+                        }
+                    } else if (command.equals("TICK")) {
                         if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
                         dispatch(out, "TICK", BedrockEvents.dispatchTick() + ServerTickEvents.fire());
                     } else if (command.equals("STOP")) { out.println("BYE"); break; }

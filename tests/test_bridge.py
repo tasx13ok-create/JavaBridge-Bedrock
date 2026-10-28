@@ -53,12 +53,15 @@ class BridgeTest(unittest.TestCase):
             for _ in range(3):
                 wire.write("TICK\n")
                 self.assertEqual(wire.readline().strip(), "TICK_OK handlers=1")
+            wire.write("BREAK 10 64 -7\n")
+            self.assertEqual(wire.readline().strip(), "BREAK_OK handlers=1")
             wire.write("STOP\n")
             self.assertEqual(wire.readline().strip(), "BYE")
         out, err = proc.communicate(timeout=5)
         self.assertEqual(proc.returncode, 0, err)
         self.assertIn("HELLO_FABRIC_INIT direct Java bytecode executed", out)
         self.assertIn("HELLO_FABRIC_TICK 3", out)
+        self.assertIn("HELLO_FABRIC_BREAK 10,64,-7", out)
 
     def test_overlong_client_handshake_rejected_without_unbounded_read(self):
         proc, connection, _ = self.start_host()
