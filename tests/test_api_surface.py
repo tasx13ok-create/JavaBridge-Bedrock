@@ -27,7 +27,8 @@ class ApiSurfaceTests(unittest.TestCase):
 
     def test_fabric_api_fixture_is_reported_without_execution(self):
         report = MODULE.analyze_jar(ROOT / "out/fixtures/fabric-api-tick.jar")
-        self.assertEqual(report["assessment"], "requires_individual_api_compatibility_check")
+        self.assertEqual(report["assessment"], "requires_unimplemented_game_apis")
+        self.assertIn("java_minecraft", report["not_supported"])
         self.assertIn("fabric_api", report["referenced_packages"])
 
     def test_corrupt_class_handled_without_crash(self):
