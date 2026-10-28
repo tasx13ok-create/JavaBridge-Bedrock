@@ -56,6 +56,12 @@ python tools/package_runtime.py
 
 This ZIP deliberately contains **no native Bedrock DLL** and is not a one-click mod installer. GitHub Actions also publishes a runtime archive as a build artifact for source inspection and standalone tests.
 
+## Windows mod manager (experimental)
+
+On Windows, run `Open-JavaBridge-Manager.bat`. This Tk interface stages downloaded Java JARs for inspection, displays experimental compatibility risk reports, and requires **explicit confirmation** before approving an exact JAR hash and copying it into the JVM sidecar's mods directory. The Start/Stop buttons control the Java sidecar only.
+
+**This interface does not install or launch Minecraft Bedrock, compile the Bedrock DLL, or guarantee Java mod compatibility.** Python with Tk support is required. Java mod JARs are not sandboxed.
+
 ## Official CurseForge file downloads (optional; requires approved API access)
 
 CurseForge distributes mod files via a key-authenticated API/CDN. An approved developer key is required in `CURSEFORGE_API_KEY`. Download by the exact CurseForge project ID and file ID:
