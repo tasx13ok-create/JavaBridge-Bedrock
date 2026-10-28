@@ -75,6 +75,24 @@ package("levilamina")
 ]]
         local patchedHeader = header:gsub(include_anchor, include_anchor .. "\n" .. includes, 1)
         io.writefile(spawner, patchedHeader)
+        -- Resolve transitive incomplete types encountered in upstream client compilation.
+        -- Patch the declaring headers, not a global forced-include, to minimize scope.
+        local function prependCompleteType(target, includeLine)
+            local file = "src/" .. target
+            if not os.isfile(file) then file = path.join("levilamina", file) end
+            assert(os.isfile(file), "Expected upstream generated header missing: " .. target)
+            local body = io.readfile(file)
+            local pragma = "#pragma once"
+            assert(body:find(pragma, 1, true), "Unexpected header layout: " .. target)
+            if not body:find(includeLine, 1, true) then
+                local revised = body:gsub(pragma, pragma .. "\n" .. includeLine, 1)
+                io.writefile(file, revised)
+            end
+        end
+        prependCompleteType("mc/world/actor/registry/SpawnGroupRegistry.h",
+            '#include "mc/world/actor/SpawnGroupData.h"')
+        prependCompleteType("mc/world/level/chunk/EntityTypeCache.h",
+            '#include "mc/world/level/chunk/EntityType.h"')
         cprint("${bright yellow}Applying JavaBridge temporary upstream compile workaround (26.51.9)${clear}")
         import("package.tools.xmake").install(package, {"--target_type=" .. package:config("target_type")})
     end)
