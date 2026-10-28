@@ -236,9 +236,19 @@ void BridgeTransport::run() {
         // Per event: at most sixteen Java sidecar action messages, then ACK.
         for (int responseCount = 0; responseCount < 17; ++responseCount) {
             std::string line = readLine(sock);
-            if (line.starts_with(verb + "_OK")) {
-                acknowledged = true;
-                break;
+            // Accept only a well-formed ACK, not a forged prefix such as
+            // TICK_OKgarbage. Require the exact handler-count grammar.
+            std::string expected = verb + "_OK handlers=";
+            if (line.starts_with(expected)) {
+                auto digits = std::string_view(line).substr(expected.size());
+                bool valid = !digits.empty() && digits.size() <= 5;
+                for (char digit : digits) {
+                    if (digit < '0' || digit > '9') valid = false;
+                }
+                if (valid) {
+                    acknowledged = true;
+                    break;
+                }
             }
             std::string message;
             bool chat = false;
