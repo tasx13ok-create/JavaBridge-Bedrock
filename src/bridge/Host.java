@@ -31,8 +31,8 @@ public final class Host {
     private static long totalNestedBytes;
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 4 && args.length != 5) {
-            System.err.println("usage: java bridge.Host <mods-folder> <port> <local-token> <max-events> [approved-hashes.tsv]");
+        if (args.length != 4 && args.length != 5 && args.length != 6) {
+            System.err.println("usage: java bridge.Host <mods-folder> <port> <local-token> <max-events> [approved-hashes.tsv] [--reconnect]");
             System.exit(2);
         }
         Path modsDir = Paths.get(args[0]);
@@ -45,18 +45,26 @@ public final class Host {
         if (args.length == 4) {
             System.err.println("WARNING: no approval file; run only known demo JARs");
         }
-        loadMods(modsDir, args.length == 5 ? Paths.get(args[4]) : null);
+        if (args.length == 6 && !args[5].equals("--reconnect")) throw new IllegalArgumentException("Invalid restart option");
+        boolean reconnect = args.length == 6;
+        loadMods(modsDir, args.length >= 5 ? Paths.get(args[4]) : null);
         try (ServerSocket server = new ServerSocket()) {
             server.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), port));
             server.setSoTimeout(600000);
             System.out.println("READY port=" + server.getLocalPort() + " loaded=" + LOADED.size() + " skipped=" + SKIPPED.size());
             System.out.flush();
+            boolean stopping = false;
+            do {
             try (Socket socket = server.accept()) {
                 socket.setSoTimeout(600000);
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
                 PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
                 String hello = readBoundedLine(in, 512);
-                if (hello == null || !hello.equals("HELLO " + token)) { out.println("ERROR unauthorized"); return; }
+                if (hello == null || !hello.equals("HELLO " + token)) {
+                    out.println("ERROR unauthorized");
+                    if (reconnect) continue;
+                    return;
+                }
                 out.println("OK bridge-v0");
                 int count = 0;
                 String command;
@@ -83,10 +91,11 @@ public final class Host {
                     } else if (command.equals("TICK")) {
                         if (++count > maxEvents) { out.println("ERROR event-limit"); break; }
                         dispatch(out, "TICK", BedrockEvents.dispatchTick() + ServerTickEvents.fire() + ClientTickEvents.fire());
-                    } else if (command.equals("STOP")) { out.println("BYE"); break; }
+                    } else if (command.equals("STOP")) { out.println("BYE"); stopping = true; break; }
                     else out.println("ERROR unsupported-command");
                 }
             }
+            } while (reconnect && !stopping);
         } finally {
             try { if (runtimeLoader != null) runtimeLoader.close(); }
             finally {
