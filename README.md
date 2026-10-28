@@ -25,6 +25,7 @@ Requires **JDK 21**, **Python 3.10+**, and on Linux `g++` with C++20 support.
 ```sh
 python tools/build.py
 python tools/inspect.py out/mods
+python tools/api_surface.py out/mods  # static Java class references; no bytecode execution
 python -m unittest discover -s tests -v
 ```
 
