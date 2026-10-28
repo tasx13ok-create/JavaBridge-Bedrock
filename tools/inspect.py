@@ -89,7 +89,7 @@ def inspect_jar(path: Path) -> dict:
                 if metadata.get("mixins"):
                     report["risk_flags"] = sorted(set(flags) | {"mixin_configuration"})
                 if (not isinstance(metadata.get("entrypoints"), dict) or
-                        not metadata["entrypoints"].get("main")):
+                        not (metadata["entrypoints"].get("main") or metadata["entrypoints"].get("client"))):
                     report["status"] = "no_supported_fabric_entrypoint"
                 elif report["risk_flags"] or truncated:
                     report["status"] = "requires_unimplemented_java_edition_apis"

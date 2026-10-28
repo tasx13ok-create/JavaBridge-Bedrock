@@ -34,8 +34,16 @@ def build():
     run(["jar", "--create", "--file", OUT / "fixtures/fabric-api-tick.jar",
          "-C", OUT / "fabric-tick-classes", ".",
          "-C", ROOT / "examples/fabric-api-tick", "fabric.mod.json"])
+    (OUT / "client-fixtures").mkdir(parents=True, exist_ok=True)
+    (OUT / "client-classes").mkdir(parents=True, exist_ok=True)
+    run(["javac", "-encoding", "UTF-8", "-cp", OUT / "host",
+         "-d", OUT / "client-classes", ROOT / "examples/client-only-fabric/src/demo/ClientOnlyMod.java"])
+    run(["jar", "--create", "--file", OUT / "client-fixtures/client-only.jar",
+         "-C", OUT / "client-classes", ".",
+         "-C", ROOT / "examples/client-only-fabric", "fabric.mod.json"])
     print("Built:", OUT / "mods/hello-fabric.jar",
-          OUT / "fixtures/fabric-api-tick.jar")
+          OUT / "fixtures/fabric-api-tick.jar",
+          OUT / "client-fixtures/client-only.jar")
 
 if __name__ == "__main__":
     build()

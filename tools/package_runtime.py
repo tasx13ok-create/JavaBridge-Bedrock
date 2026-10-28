@@ -22,6 +22,7 @@ GLOBS = [
     "out/host/**/*.class",
     "out/mods/*.jar",
     "out/fixtures/*.jar",
+    "out/client-fixtures/*.jar",
 ]
 
 

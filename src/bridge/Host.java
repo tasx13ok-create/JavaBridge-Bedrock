@@ -9,12 +9,13 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 /** Direct-JAR JVM experiment. Mod bytecode is not sandboxed; use only trusted JARs. */
 public final class Host {
-    private record Mod(String id, List<String> mainEntries, Set<String> required) {}
+    private record Mod(String id, List<String> mainEntries, List<String> clientEntries, Set<String> required) {}
     private record Candidate(Path file, Mod mod) {}
     private static final Set<String> BUILTIN_DEPENDENCIES = Set.of(
         "java", "minecraft", "fabricloader", "fabric-lifecycle-events-v1",
@@ -114,6 +115,19 @@ public final class Host {
         out.println(event + "_OK handlers=" + handlers);
     }
 
+    private static List<String> entryNames(Object raw) {
+        if (raw == null) return List.of();
+        if (!(raw instanceof List<?> entries)) throw new UnsupportedOperationException("Invalid entrypoint list");
+        List<String> names = new ArrayList<>();
+        for (Object item : entries) {
+            if (item instanceof String name) names.add(name);
+            else if (item instanceof Map<?, ?> e && "default".equals(e.get("adapter"))
+                     && e.get("value") instanceof String name) names.add(name);
+            else throw new UnsupportedOperationException("Unsupported language adapter or entrypoint");
+        }
+        return names;
+    }
+
     @SuppressWarnings("unchecked")
     private static Mod metadata(Path jar) throws Exception {
         try (ZipFile zip = new ZipFile(jar.toFile())) {
@@ -145,15 +159,11 @@ public final class Host {
             }
             Object entries = map.get("entrypoints");
             if (!(entries instanceof Map<?, ?> ep)) throw new UnsupportedOperationException("No Fabric entrypoints");
-            Object main = ep.get("main");
-            if (!(main instanceof List<?> mainList) || mainList.isEmpty()) throw new UnsupportedOperationException("No main entrypoints");
-            List<String> names = new ArrayList<>();
-            for (Object item : mainList) {
-                if (item instanceof String name) names.add(name);
-                else if (item instanceof Map<?, ?> e && "default".equals(e.get("adapter")) && e.get("value") instanceof String name) names.add(name);
-                else throw new UnsupportedOperationException("Unsupported language adapter or entrypoint");
-            }
-            return new Mod(id, names, required);
+            List<String> main = entryNames(ep.get("main"));
+            List<String> client = entryNames(ep.get("client"));
+            if (main.isEmpty() && client.isEmpty())
+                throw new UnsupportedOperationException("No main or client entrypoints");
+            return new Mod(id, main, client, required);
         }
     }
 
@@ -318,6 +328,13 @@ public final class Host {
                                 throw new UnsupportedOperationException("Not a ModInitializer: " + entry);
                             }
                             init.onInitialize();
+                        }
+                        for (String entry : mod.clientEntries) {
+                            Class<?> cls = Class.forName(entry, true, loader);
+                            Object instance = cls.getDeclaredConstructor().newInstance();
+                            if (!(instance instanceof ClientModInitializer init))
+                                throw new UnsupportedOperationException("Not a ClientModInitializer: " + entry);
+                            init.onInitializeClient();
                         }
                         initialized.add(mod.id);
                         LOADED.add(mod.id);
