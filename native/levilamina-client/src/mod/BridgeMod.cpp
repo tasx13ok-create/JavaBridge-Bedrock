@@ -4,6 +4,7 @@
 #include "ll/api/event/world/ServerLevelTickEvent.h"
 #include "ll/api/event/client/ClientJoinLevelEvent.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
+#include "ll/api/event/player/PlayerDestroyBlockEvent.h"
 #include "mc/world/level/Level.h"
 #include "mc/world/actor/player/Player.h"
 
@@ -35,7 +36,11 @@ bool BridgeMod::enable() {
     });
     join_ = bus.emplaceListener<ll::event::ClientJoinLevelEvent>([this, flush](auto&) { transport_.enqueue("JOIN"); flush(); });
     leave_ = bus.emplaceListener<ll::event::ClientExitLevelEvent>([this, flush](auto&) { transport_.enqueue("LEAVE"); flush(); });
-    if (!tick_ || !join_ || !leave_) {
+    break_ = bus.emplaceListener<ll::event::PlayerDestroyBlockEvent>([this](auto& event) {
+        auto const& p = event.pos();
+        transport_.enqueueBlockBreak(p.x, p.y, p.z);
+    });
+    if (!tick_ || !join_ || !leave_ || !break_) {
         disable();
         return false;
     }
@@ -47,7 +52,8 @@ bool BridgeMod::disable() {
     if (tick_) bus.removeListener(tick_);
     if (join_) bus.removeListener(join_);
     if (leave_) bus.removeListener(leave_);
-    tick_.reset(); join_.reset(); leave_.reset();
+    if (break_) bus.removeListener(break_);
+    tick_.reset(); join_.reset(); leave_.reset(); break_.reset();
     transport_.stop();
     return true;
 }

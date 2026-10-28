@@ -20,6 +20,7 @@ public:
     void start();
     void stop();
     void enqueue(char const* event);
+    void enqueueBlockBreak(int x, int y, int z);
     std::size_t dropped() const { return dropped_.load(); }
     /** Drain validated Java LOG actions on the caller (game) thread. */
     std::vector<std::string> drainLogs();
@@ -27,6 +28,7 @@ public:
     std::vector<std::string> drainChats();
 private:
     void run();
+    void enqueueFrame(std::string event);
     std::mutex mutex_;
     std::condition_variable cv_;
     std::deque<std::string> queue_;

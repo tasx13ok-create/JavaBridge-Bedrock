@@ -54,6 +54,7 @@ class WindowsRelaySmoke(unittest.TestCase):
                 output, errors = process.communicate(timeout=10)
             self.assertIn("HELLO_FABRIC_JOIN", output)
             self.assertIn("HELLO_FABRIC_TICK", output)
+            self.assertIn("HELLO_FABRIC_BREAK 10,64,-7", output)
             self.assertIn("HELLO_FABRIC_LEAVE", output)
 
 

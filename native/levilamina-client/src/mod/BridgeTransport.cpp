@@ -175,15 +175,26 @@ static bool decodeAction(std::string const& wire, std::string& result, bool& cha
     return true;
 }
 
-void BridgeTransport::enqueue(char const* event) {
-    if (std::string(event) != "TICK" && std::string(event) != "JOIN" && std::string(event) != "LEAVE") return;
+void BridgeTransport::enqueueFrame(std::string event) {
     {
         std::lock_guard lock(mutex_);
         if (!running_) return;
         if (queue_.size() >= 128) { dropped_++; return; }
-        queue_.emplace_back(event);
+        queue_.push_back(std::move(event));
     }
     cv_.notify_one();
+}
+void BridgeTransport::enqueue(char const* event) {
+    std::string name(event);
+    if (name != "TICK" && name != "JOIN" && name != "LEAVE") return;
+    enqueueFrame(std::move(name));
+}
+void BridgeTransport::enqueueBlockBreak(int x, int y, int z) {
+    auto within = [](int n) { return static_cast<long long>(n) >= -30000000LL
+                                    && static_cast<long long>(n) <= 30000000LL; };
+    if (!within(x) || !within(z) || y < -128 || y > 512) return;
+    enqueueFrame("BREAK " + std::to_string(x) + " " +
+                 std::to_string(y) + " " + std::to_string(z));
 }
 void BridgeTransport::run() {
 #ifdef _WIN32
@@ -221,10 +232,11 @@ void BridgeTransport::run() {
             continue;
         }
         bool acknowledged = false;
+        auto verb = event.substr(0, event.find(' '));
         // Per event: at most sixteen Java sidecar action messages, then ACK.
         for (int responseCount = 0; responseCount < 17; ++responseCount) {
             std::string line = readLine(sock);
-            if (line.starts_with(event + "_OK")) {
+            if (line.starts_with(verb + "_OK")) {
                 acknowledged = true;
                 break;
             }

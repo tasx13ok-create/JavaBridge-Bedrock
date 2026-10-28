@@ -19,5 +19,6 @@ private:
     ll::event::ListenerPtr tick_;
     ll::event::ListenerPtr join_;
     ll::event::ListenerPtr leave_;
+    ll::event::ListenerPtr break_;
 };
 }
