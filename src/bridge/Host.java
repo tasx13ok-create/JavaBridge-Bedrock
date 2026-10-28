@@ -121,8 +121,9 @@ public final class Host {
         runtimeLoader = new URLClassLoader(urls, Host.class.getClassLoader());
         URLClassLoader loader = runtimeLoader;
         for (Path jar : jars) {
+            Mod mod = null;
             try {
-                Mod mod = metadata(jar);
+                mod = metadata(jar);
                 if (mod == null) { SKIPPED.add(jar.getFileName() + " non-fabric-jar"); continue; }
                 FabricLoader.bridgeRegister(mod.id);
                 for (String entry : mod.mainEntries) {
@@ -134,8 +135,8 @@ public final class Host {
                 LOADED.add(mod.id);
                 System.out.println("INIT " + mod.id);
             } catch (Throwable err) {
-                // The failed mod is not considered loaded by the facade.
-                // Its Java side effects may still exist; this is NOT an isolation layer.
+                // Initialization may still have side effects; this is NOT an isolation layer.
+                if (mod != null) FabricLoader.bridgeForget(mod.id);
                 SKIPPED.add(jar.getFileName() + " " + err.getClass().getSimpleName() + ": " + err.getMessage());
                 System.err.println("SKIP " + SKIPPED.get(SKIPPED.size() - 1));
             }
