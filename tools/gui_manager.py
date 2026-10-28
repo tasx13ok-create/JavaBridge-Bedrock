@@ -15,6 +15,7 @@ import tempfile
 from zipfile import is_zipfile
 
 from tools.inspect import inspect_jar
+from tools.start_client_bridge import stop_path
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGING = ROOT / "downloaded-curseforge-mods"
@@ -184,8 +185,10 @@ def main() -> None:
     def stop_host():
         nonlocal host
         if host is not None and host.poll() is None:
-            host.terminate()
-            write("Stopped JavaBridge sidecar.")
+            request = stop_path()
+            request.parent.mkdir(parents=True, exist_ok=True)
+            request.write_text("stop\\n", encoding="utf-8")
+            write("Requested JavaBridge sidecar shutdown.")
 
     selected.bind("<<ListboxSelect>>", inspect_selected)
     for label, callback in (("Import JAR", import_selected), ("Refresh", refresh),
