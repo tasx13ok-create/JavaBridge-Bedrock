@@ -4,6 +4,8 @@
 #include "ll/api/event/world/ServerLevelTickEvent.h"
 #include "ll/api/event/client/ClientJoinLevelEvent.h"
 #include "ll/api/event/client/ClientExitLevelEvent.h"
+#include "mc/world/level/Level.h"
+#include "mc/world/actor/player/Player.h"
 
 namespace cfbridge {
 BridgeMod& BridgeMod::getInstance() {
@@ -20,7 +22,17 @@ bool BridgeMod::enable() {
         for (auto const& message : transport_.drainLogs())
             getSelf().getLogger().info("JavaBridge Java action: {}", message);
     };
-    tick_ = bus.emplaceListener<ll::event::ServerLevelTickEvent>([this, flush](auto&) { transport_.enqueue("TICK"); flush(); });
+    tick_ = bus.emplaceListener<ll::event::ServerLevelTickEvent>([this, flush](auto& event) {
+        transport_.enqueue("TICK");
+        flush();
+        // Only the Bedrock event thread may interact with Player/Level.
+        for (auto const& announcement : transport_.drainChats()) {
+            event.level().forEachPlayer([&announcement](Player& player) -> bool {
+                player.sendMessage(announcement);
+                return true;
+            });
+        }
+    });
     join_ = bus.emplaceListener<ll::event::ClientJoinLevelEvent>([this, flush](auto&) { transport_.enqueue("JOIN"); flush(); });
     leave_ = bus.emplaceListener<ll::event::ClientExitLevelEvent>([this, flush](auto&) { transport_.enqueue("LEAVE"); flush(); });
     if (!tick_ || !join_ || !leave_) {

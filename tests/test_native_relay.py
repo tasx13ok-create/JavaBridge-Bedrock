@@ -41,6 +41,7 @@ class NativeRelayTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
                 self.assertIn("RELAY_DROPPED=0", result.stdout)
                 self.assertIn("LOG_RELAY=Hello from Java JAR", result.stdout)
+                self.assertIn("CHAT_RELAY=JavaBridge active", result.stdout)
                 host.terminate()
                 output, err = host.communicate(timeout=10)
                 self.assertIn("HELLO_FABRIC_JOIN", output)

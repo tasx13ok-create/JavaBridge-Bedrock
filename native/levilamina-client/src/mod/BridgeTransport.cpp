@@ -139,23 +139,37 @@ std::vector<std::string> BridgeTransport::drainLogs() {
     }
     return result;
 }
+std::vector<std::string> BridgeTransport::drainChats() {
+    std::lock_guard lock(mutex_);
+    std::vector<std::string> result;
+    result.reserve(chats_.size());
+    while (!chats_.empty()) {
+        result.push_back(std::move(chats_.front()));
+        chats_.pop_front();
+    }
+    return result;
+}
 static int hexDigit(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
     return -1;
 }
-static bool decodeLog(std::string const& wire, std::string& result) {
-    constexpr std::string_view prefix = "ACTION LOG ";
-    if (!wire.starts_with(prefix)) return false;
-    auto payload = std::string_view(wire).substr(prefix.size());
-    if (payload.empty() || payload.size() > 480 || payload.size() % 2) return false;
+static bool decodeAction(std::string const& wire, std::string& result, bool& chat) {
+    constexpr std::string_view logPrefix = "ACTION LOG ";
+    constexpr std::string_view chatPrefix = "ACTION CHAT ";
+    if (wire.starts_with(logPrefix)) chat = false;
+    else if (wire.starts_with(chatPrefix)) chat = true;
+    else return false;
+    auto payload = std::string_view(wire).substr(chat ? chatPrefix.size() : logPrefix.size());
+    if (payload.empty() || payload.size() > (chat ? 320 : 480) || payload.size() % 2) return false;
     result.clear();
     for (std::size_t p = 0; p < payload.size(); p += 2) {
         int hi = hexDigit(payload[p]), lo = hexDigit(payload[p + 1]);
         if (hi < 0 || lo < 0) return false;
         char byte = static_cast<char>((hi << 4) | lo);
         // Avoid injecting control characters into plugin log output.
-        if (static_cast<unsigned char>(byte) < 0x20 && byte != '\t') return false;
+        if ((static_cast<unsigned char>(byte) < 0x20 && byte != '\t') ||
+            static_cast<unsigned char>(byte) == 0x7f) return false;
         result.push_back(byte);
     }
     return true;
@@ -215,11 +229,13 @@ void BridgeTransport::run() {
                 break;
             }
             std::string message;
-            if (!decodeLog(line, message)) break;
+            bool chat = false;
+            if (!decodeAction(line, message, chat)) break;
             {
                 std::lock_guard lock(mutex_);
-                if (logs_.size() == 128) ++dropped_;
-                else logs_.push_back(std::move(message));
+                auto& pending = chat ? chats_ : logs_;
+                if (pending.size() == 128) ++dropped_;
+                else pending.push_back(std::move(message));
             }
         }
         if (!acknowledged) {

@@ -9,7 +9,7 @@
 - Read downloaded CurseForge mod JAR metadata locally and without modifying files: Fabric, Forge, NeoForge, Quilt. Inspect CurseForge Java modpack `manifest.json` files without downloading mods or installing a modpack.
 - Compile an original demonstration Fabric-style JAR, then execute its Java bytecode through a small local JVM host.
 - Relay simulated `JOIN`, `TICK`, and `LEAVE` messages from a native C++ worker to Java event handlers over authenticated loopback TCP.
-- Handle the first bounded Java-to-native response, `BedrockActions.log`, and queue it to be emitted by a Bedrock event callback; tested on Windows and Linux C++ harnesses. No world mutations yet.
+- Support bounded Java-to-native `BedrockActions.log` and `BedrockActions.chat` actions. The C++ relay validates and queues these on its worker thread; the unverified Bedrock client plugin is designed to send announcements to connected players during integrated server ticks. Windows/Linux relay tests confirm protocol delivery, **not** in-game chat.
 - Extracts Fabric-declared nested JAR library dependencies to a temporary classpath, with strict path validation and size limits; does not initialize nested mods automatically.
 - Deterministic multi-JAR initializer order based on declared Fabric mod dependencies, with explicit diagnostics for missing dependencies, cycles, and duplicate IDs. Dependency version ranges are not implemented.
 - Minimal **Fabric Loader environment/config-path API** shim: `FabricLoader.getInstance().isModLoaded`, `getGameDir`, `getConfigDir`, and `getEnvironmentType`. The paths point to the sidecar workspace rather than Minecraft game directories. This is not a full Fabric Loader implementation.
@@ -63,7 +63,7 @@ The DLL build and in-game behavior are **not** currently verified. Actual game e
 
 - It does not supply the full Java Edition `net.minecraft.*` classes, Fabric Loader/Fabric API, registries, Mixins, shaders, rendering or world mutation. The single tick-event shim's `MinecraftServer` object is a limited facade, not a real Java server.
 - It does not yet make third-party CurseForge Java mods work in Bedrock; the JAR executed in tests is our intentionally simple demonstration mod.
-- The native C++ relay only accepts a safe Java **LOG** action back into a native event-thread queue; it cannot yet change blocks, entities, inventory, lighting, or other game state.
+- The native C++ relay accepts bounded Java **LOG** and **CHAT** actions, but cannot change blocks, entities, inventory, lighting, or other game state. Actual in-game chat is not yet tested.
 - It does not copy the CurseForge client or download its mods. API integration would require approved keys/permissions.
 - It is not a sandbox. **Java JARs execute arbitrary code with your local user's permissions. Only run JARs you trust.**
 

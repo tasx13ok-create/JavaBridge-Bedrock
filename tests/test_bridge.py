@@ -48,6 +48,7 @@ class BridgeTest(unittest.TestCase):
             self.assertEqual(wire.readline().strip(), "STATUS loaded=1 skipped=0 handlers=1")
             wire.write("JOIN\n")
             self.assertEqual(wire.readline().strip(), "ACTION LOG 48656c6c6f2066726f6d204a617661204a4152")
+            self.assertEqual(wire.readline().strip(), "ACTION CHAT 4a61766142726964676520616374697665")
             self.assertEqual(wire.readline().strip(), "JOIN_OK handlers=1")
             for _ in range(3):
                 wire.write("TICK\n")

@@ -36,6 +36,31 @@ public final class BedrockActions {
         return true;
     }
 
+    /**
+     * Experimental Java-to-Bedrock text announcement (not a Java Edition API).
+     * Delivered to players only when an integrated server-level tick fires.
+     */
+    public static synchronized boolean chat(String message) {
+        if (message == null) return false;
+        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length == 0 || bytes.length > 160 || PENDING.size() >= MAX_PENDING) {
+            dropped++;
+            return false;
+        }
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            int b = Byte.toUnsignedInt(value);
+            if (b < 32 || b == 127) {
+                dropped++;
+                return false;
+            }
+            hex.append(Character.forDigit(b >> 4, 16));
+            hex.append(Character.forDigit(b & 15, 16));
+        }
+        PENDING.addLast("ACTION CHAT " + hex);
+        return true;
+    }
+
     static synchronized List<String> drain() {
         List<String> batch = new ArrayList<>();
         while (batch.size() < MAX_PER_EVENT && !PENDING.isEmpty()) {

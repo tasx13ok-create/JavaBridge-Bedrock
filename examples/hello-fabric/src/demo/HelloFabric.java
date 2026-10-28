@@ -13,7 +13,7 @@ public final class HelloFabric implements ModInitializer {
             ticks++;
             System.out.println("HELLO_FABRIC_TICK " + ticks);
         });
-        BedrockEvents.onJoin(() -> { System.out.println("HELLO_FABRIC_JOIN"); BedrockActions.log("Hello from Java JAR"); });
+        BedrockEvents.onJoin(() -> { System.out.println("HELLO_FABRIC_JOIN"); BedrockActions.log("Hello from Java JAR"); BedrockActions.chat("JavaBridge active"); });
         BedrockEvents.onLeave(() -> System.out.println("HELLO_FABRIC_LEAVE"));
     }
 }
