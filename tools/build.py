@@ -41,6 +41,14 @@ def build():
     run(["jar", "--create", "--file", OUT / "client-fixtures/client-only.jar",
          "-C", OUT / "client-classes", ".",
          "-C", ROOT / "examples/client-only-fabric", "fabric.mod.json"])
+    (OUT / "client-tick-classes").mkdir(parents=True, exist_ok=True)
+    (OUT / "client-tick-fixtures").mkdir(parents=True, exist_ok=True)
+    run(["javac", "-encoding", "UTF-8", "-cp", OUT / "host",
+         "-d", OUT / "client-tick-classes",
+         ROOT / "examples/client-tick-fabric/src/demo/ClientTickDemo.java"])
+    run(["jar", "--create", "--file", OUT / "client-tick-fixtures/client-tick.jar",
+         "-C", OUT / "client-tick-classes", ".",
+         "-C", ROOT / "examples/client-tick-fabric", "fabric.mod.json"])
     print("Built:", OUT / "mods/hello-fabric.jar",
           OUT / "fixtures/fabric-api-tick.jar",
           OUT / "client-fixtures/client-only.jar")
