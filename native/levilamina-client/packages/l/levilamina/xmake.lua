@@ -71,7 +71,8 @@ package("levilamina")
 #include "mc/world/actor/registry/SpawnGroupRegistry.h"
 #include "mc/world/level/chunk/EntityTypeCache.h"
 ]]
-        io.writefile(spawner, header:gsub(include_anchor, include_anchor .. "\n" .. includes, 1))
+        local patchedHeader = header:gsub(include_anchor, include_anchor .. "\n" .. includes, 1)
+        io.writefile(spawner, patchedHeader)
         cprint("${bright yellow}Applying JavaBridge temporary upstream compile workaround (26.51.9)${clear}")
         import("package.tools.xmake").install(package, {"--target_type=" .. package:config("target_type")})
     end)
