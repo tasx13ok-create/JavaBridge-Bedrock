@@ -1,6 +1,6 @@
 -- Experimental Windows Bedrock client plugin. Requires matching LeviLamina/Bedrock SDK.
 add_rules("mode.debug", "mode.release")
-add_repositories("java-bridge-local packages")
+add_repositories("java-bridge-local .", {rootdir = os.scriptdir()})
 add_repositories("levimc-repo https://github.com/LiteLDev/xmake-repo.git")
 option("target_type")
     set_default("client")
