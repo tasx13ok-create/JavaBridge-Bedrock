@@ -68,7 +68,9 @@ package("levilamina")
         assert(header:find(include_anchor, 1, true), "BedrockSpawner include layout changed")
         local includes = [[
 #include "mc/world/actor/ActorSpawnRuleGroup.h"
+#include "mc/world/actor/SpawnGroupData.h"
 #include "mc/world/actor/registry/SpawnGroupRegistry.h"
+#include "mc/world/level/chunk/EntityType.h"
 #include "mc/world/level/chunk/EntityTypeCache.h"
 ]]
         local patchedHeader = header:gsub(include_anchor, include_anchor .. "\n" .. includes, 1)
